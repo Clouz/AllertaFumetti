@@ -26,6 +26,10 @@ func main() {
 	//stories := []item{}
 	c := colly.NewCollector(
 		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36"),
+		// colly.URLFilters(
+		// 	regexp.MustCompile("https://www.panini\\.it/shp_ita_it/fumetti-libri-riviste\\.html?p=/(|e.+)$"),
+		// 	regexp.MustCompile("http://httpbin\\.org/h.+"),
+		// ),
 	)
 
 	// Find and visit all links
