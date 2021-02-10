@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"net/url"
+	"time"
 
 	"github.com/gocolly/colly"
 )
@@ -12,10 +14,12 @@ type item struct {
 	productItemAttributeSecondary string
 	specialPrice                  string
 	productItemInner              string
+	productItemPhoto              *url.URL
+	productItemHref               *url.URL
 }
 
 func (i item) String() string {
-	return fmt.Sprintf("%v | %v | %v | %v | %v", i.productItemName, i.productItemAttribute, i.productItemAttributeSecondary, i.specialPrice, i.productItemInner)
+	return fmt.Sprintf("%v | %v | %v | %v | %v | %v | %v", i.productItemName, i.productItemAttribute, i.productItemAttributeSecondary, i.specialPrice, i.productItemInner, i.productItemHref, i.productItemPhoto)
 }
 
 func main() {
@@ -25,10 +29,8 @@ func main() {
 	)
 
 	// Find and visit all links
-	//<div class="product details product-item-details">
 	//<div class="product-item-info type1"
 	c.OnHTML("div.product-item-info.type1", func(e *colly.HTMLElement) {
-		//fmt.Println(e.Text)
 		temp := item{}
 		temp.productItemName = e.ChildText("h3.product-item-name")
 		e.ForEach("div.product-item-attribute", func(i int, el *colly.HTMLElement) {
@@ -38,10 +40,11 @@ func main() {
 				temp.productItemAttributeSecondary = el.Text
 			}
 		})
-		//temp.productItemAttribute = e.ChildText("div.product-item-attribute")
-		//temp.productItemAttributeSecondary = e.ChildText("div.product-item-attribute-secondary")
 		temp.specialPrice = e.ChildText("span.special-price span.price")
 		temp.productItemInner = e.ChildText("div.product-item-inner")
+		temp.productItemHref, _ = url.Parse(e.ChildAttr("div.product-item-photo a", "href"))
+		temp.productItemPhoto, _ = url.Parse(e.ChildAttr("div.product-item-photo img.product-image-photo", "data-src"))
+
 		//stories = append(stories, temp)
 		fmt.Println(temp)
 
@@ -54,6 +57,10 @@ func main() {
 
 	c.OnRequest(func(r *colly.Request) {
 		fmt.Println("----Visiting", r.URL)
+	})
+
+	c.Limit(&colly.LimitRule{
+		RandomDelay: 5 * time.Second,
 	})
 
 	c.Visit("https://www.panini.it/shp_ita_it/fumetti-libri-riviste.html?p=1&product_list_limit=36")
