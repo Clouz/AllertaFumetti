@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
+	"log"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -23,7 +26,11 @@ func (i item) String() string {
 }
 
 func main() {
-	//stories := []item{}
+
+	itemLimit := 500
+	itemCount := 0
+
+	stories := []item{}
 	c := colly.NewCollector(
 		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36"),
 		// colly.URLFilters(
@@ -49,14 +56,18 @@ func main() {
 		temp.productItemHref, _ = url.Parse(e.ChildAttr("div.product-item-photo a", "href"))
 		temp.productItemPhoto, _ = url.Parse(e.ChildAttr("div.product-item-photo img.product-image-photo", "data-src"))
 
-		//stories = append(stories, temp)
-		fmt.Println(temp)
+		itemCount++
+
+		stories = append(stories, temp)
+		fmt.Println(itemCount, ":\t", temp)
 
 	})
 
 	c.OnHTML("a.next", func(e *colly.HTMLElement) {
-		link := e.Attr("href")
-		c.Visit(e.Request.AbsoluteURL(link))
+		if (itemLimit >= itemCount) || (itemLimit == 0) {
+			link := e.Attr("href")
+			c.Visit(e.Request.AbsoluteURL(link))
+		}
 	})
 
 	c.OnRequest(func(r *colly.Request) {
@@ -68,4 +79,36 @@ func main() {
 	})
 
 	c.Visit("https://www.panini.it/shp_ita_it/fumetti-libri-riviste.html?p=1&product_list_limit=36")
+
+	toCSV(stories)
+
+}
+
+func toCSV(i []item) {
+	records := [][]string{}
+
+	for _, v := range i {
+
+		xx := []string{
+			v.productItemName,
+			v.productItemAttribute,
+			v.productItemAttributeSecondary,
+			v.specialPrice,
+			v.productItemInner,
+			v.productItemPhoto.String(),
+			v.productItemHref.String(),
+		}
+
+		records = append(records, xx)
+	}
+
+	f, _ := os.Create("export.csv")
+	w := csv.NewWriter(f)
+	w.Comma = ';'
+
+	w.WriteAll(records) // calls Flush internally
+
+	if err := w.Error(); err != nil {
+		log.Fatalln("error writing csv:", err)
+	}
 }
